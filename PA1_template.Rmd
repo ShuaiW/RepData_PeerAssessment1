@@ -8,18 +8,66 @@ output:
 
 ## Loading and preprocessing the data
 
-
+```{r load, echo = TRUE}
+# Load the data
+activity_data <- read.csv(unz("activity.zip", "activity.csv"))
+```
 
 ## What is mean total number of steps taken per day?
 
+```{r total, echo = TRUE}
+# Make a histogram of the total number of steps taken each day
+total_per_day = aggregate(steps ~ date, activity_data, sum)
+require(ggplot2)
+qplot(total_per_day$steps, main = "Total number of steps taken each day", xlab = "steps", binwidth = 2000)
 
+# Calculate and report the mean and median total number of steps taken per day
+mean(total_per_day$steps)
+median(total_per_day$steps)
+```
 
 ## What is the average daily activity pattern?
 
+```{r pattern, echo = TRUE}
+# Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+step_data = aggregate(steps ~ interval, activity_data, mean)
+qplot(interval, steps, data = step_data, geom = c("line"), main = "Time series of internal and the average number of steps taken")
 
+# Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+step_data[which.max(step_data$steps), ]$interval
+```
 
 ## Imputing missing values
 
+```{r missing, echo = TRUE}
+# Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+sum(is.na(activity_data))
+
+# Filling missing values with the mean for that 5-minute interval
+complete_data <- cbind(activity_data, step_data[, 2])
+colnames(complete_data)[4] <- "avgSteps"
+complete_data[is.na(complete_data), ]$steps <- complete_data[is.na(complete_data), ]$avgSteps
+
+# Create a new dataset that is equal to the original dataset but with the missing data filled in.
+complete_data <- complete_data[, 1:3]
+
+# Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+total_per_day_filled <- aggregate(steps ~ date, complete_data, sum)
+qplot(total_per_day_filled$steps, main = "Total number of steps taken each day", xlab = "steps", binwidth = 2000)
+
+mean(total_per_day_filled$steps)
+median(total_per_day_filled$steps)
+```
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+``` {r week, echo = TRUE}
+# Create a new factor variable in the dataset with two levels -- "weekday" and "weekend" indicating whether a given date is a weekday or weekend day
+complete_data$day <- weekdays(as.Date(complete_data$date))
+weekdays <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
+complete_data$day <- factor(ifelse(complete_data$day %in% weekdays, "weekday", "weekend"))
+
+# Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+step_data_filled <- aggregate(steps ~ interval + day, complete_data, mean)
+qplot(interval, steps, data = step_data_filled, facets = day~., geom = c("line"), main = "Time series of internal and the average number of steps taken")
+```
